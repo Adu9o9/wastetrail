@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+export const runtime = "nodejs";
 
-const prisma = new PrismaClient();
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   await prisma.$queryRaw`SELECT 1`;
   return NextResponse.json({ ok: true });
 }
-export const runtime = "nodejs";
