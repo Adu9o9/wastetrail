@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  GENERATOR
+  COLLECTOR
+  PENDING
+}
+
+enum PickupStatus {
+  OPEN
+  ACCEPTED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum ProofType {
+  PICKUP
+  DELIVERY
+}
+
+model AppUser {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  role        Role     @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  generatorProfile GeneratorProfile?
+  collectorProfile CollectorProfile?
+}
+
+model Facility {
+  id              String   @id @default(cuid())
+  name            String
+  address         String?
+  lat             Float?
+  lng             Float?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  collectors      CollectorProfile[]
+  pickupRequests  PickupRequest[]
+}
+
+model GeneratorProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String
+  address   String?
+  lat       Float?
+  lng       Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      AppUser   @relation(fields: [userId], references: [id])
+  pickupRequests PickupRequest[]
+}
+
+model CollectorProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  facilityId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       AppUser   @relation(fields: [userId], references: [id])
+  facility   Facility  @relation(fields: [facilityId], references: [id])
+  acceptedPickups PickupRequest[] @relation("AcceptedByCollector")
+}
+
+model PickupRequest {
+  id           String      @id @default(cuid())
+  status       PickupStatus @default(OPEN)
+
+  facilityId   String
+  generatorId  String
+
+  wasteType    String
+  approxKg     Float?
+  pickupWindowStart DateTime?
+  pickupWindowEnd   DateTime?
+  notes        String?
+
+  acceptedByCollectorId String?
+  acceptedAt   DateTime?
+  pickedUpAt   DateTime?
+  deliveredAt  DateTime?
+  cancelledAt  DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  facility     Facility         @relation(fields: [facilityId], references: [id])
+  generator    GeneratorProfile @relation(fields: [generatorId], references: [id])
+  acceptedByCollector CollectorProfile? @relation("AcceptedByCollector", fields: [acceptedByCollectorId], references: [id])
+
+  proofs       Proof[]
+}
+
+model Proof {
+  id            String    @id @default(cuid())
+  pickupRequestId String
+  type          ProofType
+  photoUrl      String
+  lat           Float?
+  lng           Float?
+  capturedAt    DateTime  @default(now())
+
+  pickupRequest PickupRequest @relation(fields: [pickupRequestId], references: [id])
+
+  @@index([pickupRequestId])
+}
